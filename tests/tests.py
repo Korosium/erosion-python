@@ -39,7 +39,6 @@ class Erosion(unittest.TestCase):
         checksum = sha256sum("tests/files/test_file_for_erosion.txt.ero")
         os.remove(path)
         self.assertEqual(expected, checksum)
-        
 
 if __name__ == '__main__':
     unittest.main()
