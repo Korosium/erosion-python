@@ -1,8 +1,12 @@
 from src.constants.constants import TAG_LENGTH, HEADER_LENGTH
 from src.primitives.poly1305 import clamp, le_bytes_to_num, num_to_8_le_bytes, num_to_16_le_bytes, pad_16_bytes
+from src.utilities.utility import show_progress
+import os
 
 def mac(aad, path, key, skip_header = False):
     print("Calculating tag...")
+    byte_size = os.path.getsize(path)
+
     r = le_bytes_to_num(clamp(key[:16]))
     s = le_bytes_to_num(key[16:32])
     a = 0
@@ -17,6 +21,7 @@ def mac(aad, path, key, skip_header = False):
 
     # File processing
     ciphertext_length = 0
+    byte_processed = 0
     with open(path, "rb") as ciphertext_temp_file:
         if skip_header: ciphertext_temp_file.read(HEADER_LENGTH)
         while True:
@@ -32,6 +37,8 @@ def mac(aad, path, key, skip_header = False):
             n = le_bytes_to_num(chunk + bytes([1]))
             a += n
             a = (r * a) % p
+
+            byte_processed = show_progress(chunk, byte_size, byte_processed)
 
     # AAD length and Ciphertext length final process
     last_part = num_to_8_le_bytes(len(aad)) + num_to_8_le_bytes(ciphertext_length)

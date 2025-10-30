@@ -1,6 +1,6 @@
 from src.constants.constants import STATE_SIZE, BLOCK_H_NONCE_LENGTH, NONCE_LENGTH, READ_BUFFER, HEADER_LENGTH
 from src.primitives.xchacha20 import block, block_h
-from src.utilities.utility import generate_timestamp, get_parent_dir
+from src.utilities.utility import generate_timestamp, get_parent_dir, show_progress
 import os
 
 def process_bytes(key, nonce, counter, i, chunk):
@@ -13,6 +13,7 @@ def process_bytes(key, nonce, counter, i, chunk):
 
 def encrypt(key, counter, nonce, path:str):
     print("Encrypting file...")
+    byte_size = os.path.getsize(path)
     sub_key = block_h(key, nonce[:BLOCK_H_NONCE_LENGTH])
     chacha20_nonce = bytes([0, 0, 0, 0] + list(nonce[BLOCK_H_NONCE_LENGTH:NONCE_LENGTH]))
     filename = path.split(os.sep).pop().encode("utf-8")[:255]   
@@ -20,6 +21,7 @@ def encrypt(key, counter, nonce, path:str):
     temp_file_path = os.path.join(get_parent_dir(path), f"{generate_timestamp()}.bin")
 
     i = 0
+    byte_processed = 0
     with open(temp_file_path, "wb") as ciphertext_file:
         with open(path, "rb") as plaintext_file:
             while True:
@@ -32,17 +34,20 @@ def encrypt(key, counter, nonce, path:str):
                     break
                 ciphertext_file.write(process_bytes(sub_key, chacha20_nonce, counter, i, chunk))
                 i += int(READ_BUFFER/STATE_SIZE)
+                byte_processed = show_progress(chunk, byte_size, byte_processed)
 
     return temp_file_path
 
 def decrypt(key, counter, nonce, path:str):
     print("Decrypting file...")
+    byte_size = os.path.getsize(path)
     sub_key = block_h(key, nonce[:BLOCK_H_NONCE_LENGTH])
     chacha20_nonce = bytes([0, 0, 0, 0] + list(nonce[BLOCK_H_NONCE_LENGTH:NONCE_LENGTH]))
     filename = ""
     temp_file_path = os.path.join(get_parent_dir(path), f"{generate_timestamp()}.bin")
 
     i = 0
+    byte_processed = 0
     with open(path, "rb") as ciphertext_file:
         ciphertext_file.read(HEADER_LENGTH)
         with open(temp_file_path, "wb") as plaintext_file:
@@ -57,5 +62,7 @@ def decrypt(key, counter, nonce, path:str):
                 else:
                     plaintext_file.write(bytes(plaintext))
                 i += int(READ_BUFFER/STATE_SIZE)
+                byte_processed = show_progress(chunk, byte_size, byte_processed)
 
     os.rename(temp_file_path, os.path.join(get_parent_dir(temp_file_path), filename))
+
