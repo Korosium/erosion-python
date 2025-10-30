@@ -17,7 +17,7 @@ def main():
         key = sha3_256(getpass("Key: ").encode("utf-8")).digest()
         xchacha20_poly1305.decrypt(key, args.Decrypt)
     else:
-        print("No files provided") 
+        print("No file provided") 
 
 if __name__ == "__main__":
     main()
