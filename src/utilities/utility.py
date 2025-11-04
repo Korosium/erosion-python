@@ -18,16 +18,6 @@ def generate_nonce():
     nonce = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
     return primitive_xchacha20.block(key, counter, nonce)[:NONCE_LENGTH]
 
-def show_progress(chunk, byte_size, byte_processed):
-    byte_processed += len(chunk)
-    if byte_processed > byte_size: byte_processed = byte_size
-    if byte_processed == byte_size:
-        print(f"{byte_processed}/{byte_size} ({(byte_processed/byte_size*100):.2f}%)")
-        print("Done!")
-    else:
-        print(f"{byte_processed}/{byte_size} ({(byte_processed/byte_size*100):.2f}%)", end="\r")
-    return byte_processed
-
 def sha256sum(path):
     hash_func = sha256()
     with open(path, 'rb') as file:
