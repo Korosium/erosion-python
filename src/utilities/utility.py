@@ -1,5 +1,6 @@
-from src.constants.constants import KEY_LENGTH, NONCE_LENGTH
+from src.constants.constants import KEY_LENGTH, NONCE_LENGTH, READ_BUFFER
 from src.primitives import xchacha20 as primitive_xchacha20
+from hashlib import sha256
 import datetime, os, time
 
 def generate_timestamp():
@@ -26,6 +27,13 @@ def show_progress(chunk, byte_size, byte_processed):
     else:
         print(f"{byte_processed}/{byte_size} ({(byte_processed/byte_size*100):.2f}%)", end="\r")
     return byte_processed
+
+def sha256sum(path):
+    hash_func = sha256()
+    with open(path, 'rb') as file:
+        while chunk := file.read(READ_BUFFER):
+            hash_func.update(chunk)
+    return hash_func.hexdigest()
 
 def to_hex(data):
     retval = ""

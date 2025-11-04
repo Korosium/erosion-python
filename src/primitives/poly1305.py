@@ -1,5 +1,22 @@
-from src.constants.constants import KEY_LENGTH
+from src.constants.constants import KEY_LENGTH, TAG_LENGTH
 from src.primitives.xchacha20 import block
+
+class Poly1305:
+
+    def __init__(self, key):
+        self.r = le_bytes_to_num(clamp(key[:16]))
+        self.s = le_bytes_to_num(key[16:32])
+        self.a = 0
+        self.p = 0x3fffffffffffffffffffffffffffffffb
+
+    def update(self, chunk):
+        n = le_bytes_to_num(chunk + bytes([1]))
+        self.a += n
+        self.a = (self.r * self.a) % self.p
+
+    def end(self):
+        self.a += self.s
+        return num_to_16_le_bytes(self.a)
 
 def clamp(r):
     r[3] &= 15
@@ -41,3 +58,9 @@ def pad_16_bytes(data:bytes):
 
 def key_gen(key, nonce):
     return block(key, 0, nonce)[:KEY_LENGTH]
+
+def mac(msg, key):
+    poly = Poly1305(key)
+    for i in range(0, len(msg), TAG_LENGTH):
+        poly.update(msg[i:i+TAG_LENGTH])
+    return poly.end()
