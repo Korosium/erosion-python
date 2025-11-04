@@ -1,6 +1,5 @@
 from src.constants.constants import TAG_LENGTH, HEADER_LENGTH
 from src.primitives.poly1305 import Poly1305, num_to_8_le_bytes, pad_16_bytes
-import os
 
 def mac(aad, path, key, skip_header = False):
     poly = Poly1305(key)
