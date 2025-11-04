@@ -3,19 +3,19 @@ from src.primitives.xchacha20 import block, block_h
 from src.utilities.utility import generate_timestamp, get_parent_dir, show_progress
 import os
 
-def process_bytes(key, nonce, counter, i, chunk):
+def process_bytes(key, nonce, counter, chunk, offset = 0):
+    sub_key = block_h(key, nonce[:BLOCK_H_NONCE_LENGTH])
+    chacha20_nonce = bytes([0, 0, 0, 0] + list(nonce[BLOCK_H_NONCE_LENGTH:NONCE_LENGTH]))
     ciphertext = []
-    for j in range(0, len(chunk), STATE_SIZE):
-        stream = block(key, counter + i + int(j/STATE_SIZE), nonce)
-        for k in range(len(chunk[j:j+STATE_SIZE])):
-            ciphertext.append(chunk[k+j] ^ stream[k])
+    for i in range(0, len(chunk), STATE_SIZE):
+        stream = block(sub_key, counter + offset + int(i/STATE_SIZE), chacha20_nonce)
+        for j in range(len(chunk[i:i+STATE_SIZE])):
+            ciphertext.append(chunk[j+i] ^ stream[j])
     return bytes(ciphertext)
 
 def encrypt(key, counter, nonce, path:str):
     print("Encrypting file...")
     byte_size = os.path.getsize(path)
-    sub_key = block_h(key, nonce[:BLOCK_H_NONCE_LENGTH])
-    chacha20_nonce = bytes([0, 0, 0, 0] + list(nonce[BLOCK_H_NONCE_LENGTH:NONCE_LENGTH]))
     filename = path.split(os.sep).pop().encode("utf-8")[:255]   
     header = bytearray([len(filename)] + list(filename))
     temp_file_path = os.path.join(get_parent_dir(path), f"{generate_timestamp()}.bin")
@@ -32,7 +32,7 @@ def encrypt(key, counter, nonce, path:str):
                     chunk = plaintext_file.read(READ_BUFFER)
                 if not chunk:
                     break
-                ciphertext_file.write(process_bytes(sub_key, chacha20_nonce, counter, i, chunk))
+                ciphertext_file.write(process_bytes(key, nonce, counter, chunk, i))
                 i += int(READ_BUFFER/STATE_SIZE)
                 byte_processed = show_progress(chunk, byte_size, byte_processed)
 
@@ -41,8 +41,6 @@ def encrypt(key, counter, nonce, path:str):
 def decrypt(key, counter, nonce, path:str):
     print("Decrypting file...")
     byte_size = os.path.getsize(path)
-    sub_key = block_h(key, nonce[:BLOCK_H_NONCE_LENGTH])
-    chacha20_nonce = bytes([0, 0, 0, 0] + list(nonce[BLOCK_H_NONCE_LENGTH:NONCE_LENGTH]))
     filename = ""
     temp_file_path = os.path.join(get_parent_dir(path), f"{generate_timestamp()}.bin")
 
@@ -55,7 +53,7 @@ def decrypt(key, counter, nonce, path:str):
                 chunk = ciphertext_file.read(READ_BUFFER)
                 if not chunk:
                     break
-                plaintext = process_bytes(sub_key, chacha20_nonce, counter, i, chunk)
+                plaintext = process_bytes(key, nonce, counter, chunk, i)
                 if i == 0:
                     filename = bytes(plaintext[1:plaintext[0]+1]).decode("utf-8")
                     plaintext_file.write(bytes(plaintext[plaintext[0]+1:]))

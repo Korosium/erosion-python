@@ -26,3 +26,9 @@ def show_progress(chunk, byte_size, byte_processed):
     else:
         print(f"{byte_processed}/{byte_size} ({(byte_processed/byte_size*100):.2f}%)", end="\r")
     return byte_processed
+
+def to_hex(data):
+    retval = ""
+    for b in data:
+        retval += hex(b)[2:].zfill(2)
+    return retval
